@@ -2,8 +2,9 @@
 
 **COG**: Republic of the Congo.
 
-- ARMP
-- RCCM
+- ARMP (Autorité de Régulation des Marchés Publics) public procurement, DGCMP a priori control; BOAMP bulletin today, e-procurement digitalization decreed (2024) but not yet live
+- OHADA RCCM company/business registration via ACPCE (guichet unique); NIU tax registration via DGID
+- Décret n° 2009-156 Art. 146 ARMP exclusion-duration 5-year statutory cap gate
 
 AGPL-3.0-or-later.
 
