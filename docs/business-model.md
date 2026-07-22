@@ -24,3 +24,17 @@ Market-entry compliance for the Republic of the Congo.
   a 5-year statutory duration cap on any ARMP-pronounced exclusion
   sanction, absent a court-ordered definitive (permanent) exclusion for
   repeat violations
+- Hydrocarbons-sector-ONLY local content: a 15 November 2019 executive
+  order requires foreign firms in petroleum to joint-venture with the
+  Société Nationale des Pétroles du Congo (SNPC) and staff 80% of
+  management / 90% of all positions with Congolese nationals -- NOT a
+  general public-procurement rule; the governor check is conditional on
+  an engagement's own declared `:sector`
+
+## Trust Controls
+
+Any actual BOAMP tender response or ARMP filing submission requires
+Market-Entry Compliance Governor clearance and always escalates to
+human sign-off (`marketentry.phase`/`marketentry.governor`). A false or
+fabricated regulatory-requirement claim is a HARD hold
+(`:no-spec-basis`).

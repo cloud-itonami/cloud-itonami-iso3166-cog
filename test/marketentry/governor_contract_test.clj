@@ -110,6 +110,29 @@
       (let [r2 (approve! actor "t14")]
         (is (= :commit (get-in r2 [:state :disposition])))))))
 
+(deftest hydrocarbons-local-content-noncompliant-is-held-and-unoverridable
+  (testing "hydrocarbons-sector engagement with no SNPC joint-venture and no Congolese-staffing compliance -> HARD hold (15 Nov 2019 executive order)"
+    (let [[db actor] (fresh)
+          _ (assess! actor "t12pre" "eng-7")
+          _ (draft! actor "t12pre" "eng-7")
+          res (exec-op actor "t12" {:op :filing/submit :subject "eng-7"} operator)]
+      (is (= :hold (get-in res [:state :disposition])) "settles immediately, no interrupt")
+      (is (not= :interrupted (:status res)))
+      (is (some #{:hydrocarbons-local-content-noncompliant} (-> (store/ledger db) last :basis)))
+      (is (empty? (store/submit-history db))))))
+
+(deftest hydrocarbons-local-content-check-never-fires-for-non-hydrocarbons-sector
+  (testing "SAME non-compliant SNPC-JV/staffing flags as eng-7, but :sector :general -> the hydrocarbons check is a structural no-op, submit proceeds to the normal human-approval escalation instead of a HARD hold"
+    (let [[db actor] (fresh)
+          _ (assess! actor "t13pre" "eng-8")
+          _ (draft! actor "t13pre" "eng-8")
+          res (exec-op actor "t13" {:op :filing/submit :subject "eng-8"} operator)]
+      (is (= :interrupted (:status res))
+          "clean submit still escalates for ordinary human approval -- not HARD-held by the hydrocarbons-only rule")
+      (let [r2 (approve! actor "t13")]
+        (is (= :commit (get-in r2 [:state :disposition])))
+        (is (true? (:submitted? (store/engagement db "eng-8"))))))))
+
 (deftest submit-always-escalates-then-human-decides
   (testing "a clean fully-assessed submit still ALWAYS interrupts for human approval"
     (let [[db actor] (fresh)

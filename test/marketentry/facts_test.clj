@@ -9,7 +9,16 @@
     (is (seq (:required-evidence sb)))
     (is (some? (facts/corporate-number-spec-basis "COG")))
     (is (some? (facts/business-registration-spec-basis "COG")))
-    (is (some? (facts/exclusion-cap-spec-basis "COG")))))
+    (is (some? (facts/exclusion-cap-spec-basis "COG")))
+    (is (some? (facts/hydrocarbons-local-content-spec-basis "COG")))))
+
+(deftest cog-hydrocarbons-local-content-is-sector-specific
+  (testing "grounded in the 15 November 2019 executive order -- petroleum sector only, not a general public-procurement rule"
+    (let [hc (facts/hydrocarbons-local-content-spec-basis "COG")]
+      (is (some? hc))
+      (is (re-find #"(?i)hydrocarbon|petroleum" (:hydrocarbons-local-content-owner-authority hc)))
+      (is (string? (:hydrocarbons-local-content-legal-basis hc)))
+      (is (string? (:hydrocarbons-local-content-provenance hc))))))
 
 (deftest cog-rep-spec-basis-is-honestly-absent
   (testing "Décret n° 2009-156 Art. 146's exclusion-extension provision covers majority-capital parent/subsidiary companies, not a bidder's own representatives/directors -- deliberately not claimed"
