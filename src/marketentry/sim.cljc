@@ -71,6 +71,14 @@
     (println "== filing/submit eng-1 AGAIN (double-submit -> HARD hold) ==")
     (println (exec-op actor "t13" {:op :filing/submit :subject "eng-1"} operator))
 
+    (println "== jurisdiction/assess eng-7 (sets up hydrocarbons local-content non-compliance) ==")
+    (println (exec-op actor "t14" {:op :jurisdiction/assess :subject "eng-7"} operator))
+    (println (approve! actor "t14"))
+    (println (exec-op actor "t14b" {:op :filing/draft :subject "eng-7"} operator))
+    (println (approve! actor "t14b"))
+    (println "== filing/submit eng-7 (hydrocarbons sector, no SNPC JV / staffing compliance -> HARD hold, 15 Nov 2019 executive order) ==")
+    (println (exec-op actor "t15" {:op :filing/submit :subject "eng-7"} operator))
+
     (println "== audit ledger ==")
     (doseq [f (store/ledger db)] (println f))
 

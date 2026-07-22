@@ -19,10 +19,9 @@
   `:status` value).
 
   The ledger stays append-only on every backend."
-  (:require #?(:clj  [clojure.edn :as edn]
-               :cljs [cljs.reader :as edn])
-            [marketentry.registry :as registry]
-            [langchain.db :as d]))
+  (:require [marketentry.registry :as registry]
+            [langchain.db :as d]
+            [langchain-store.core :as ls]))
 
 (defprotocol Store
   (engagement [s id])
@@ -43,7 +42,7 @@
 
 (defn demo-data
   "A small, self-contained engagement set covering both actuation
-  lifecycles (draft, submit) plus the governor's own new checks.
+  lifecycles (draft, submit) plus the governor's own checks.
   `:prior-armp-exclusion?` / `:exclusion-duration-years` /
   `:court-ordered-definitive-exclusion?` are ground truth for the
   flagship STATUTORY CEILING VALIDATION check (Décret n° 2009-156 Art.
@@ -51,7 +50,12 @@
   statutory maximum, absent a court-ordered definitive exclusion?);
   `:requires-niu?` / `:niu-verified?` are ground truth for the
   conditional Direction Générale des Impôts et des Domaines (DGID) NIU
-  check."
+  check. `:sector` / `:snpc-joint-venture?` /
+  `:congolese-staffing-compliant?` are ground truth for the
+  hydrocarbons-sector-CONDITIONAL local-content check (15 novembre 2019
+  executive order -- petroleum sector only, SNPC joint-venture + 80%
+  management / 90% overall Congolese-staffing requirement, NEVER
+  applied to non-hydrocarbons engagements)."
   []
   {:engagements
    {"eng-1" {:id "eng-1" :operator "Brazzaville Négoce SARL" :procurement-channel "BOAMP (armp.cg) tender notice"
@@ -59,6 +63,7 @@
              :claimed-fee 860000.0
              :prior-armp-exclusion? false
              :requires-niu? true :niu-verified? true
+             :sector :general
              :drafted? false :submitted? false
              :jurisdiction "COG" :status :intake}
     "eng-2" {:id "eng-2" :operator "Atlantis LLC" :procurement-channel "BOAMP (armp.cg) tender notice"
@@ -66,6 +71,7 @@
              :claimed-fee 860000.0
              :prior-armp-exclusion? false
              :requires-niu? true :niu-verified? true
+             :sector :general
              :drafted? false :submitted? false
              :jurisdiction "ATL" :status :intake}
     "eng-3" {:id "eng-3" :operator "Pointe-Noire Logistique SA" :procurement-channel "BOAMP (armp.cg) tender notice"
@@ -73,6 +79,7 @@
              :claimed-fee 999000.0
              :prior-armp-exclusion? false
              :requires-niu? true :niu-verified? true
+             :sector :general
              :drafted? false :submitted? false
              :jurisdiction "COG" :status :intake}
     "eng-4" {:id "eng-4" :operator "Kouilou Travaux Publics SARL" :procurement-channel "BOAMP (armp.cg) tender notice"
@@ -80,6 +87,7 @@
              :claimed-fee 860000.0
              :prior-armp-exclusion? true :exclusion-duration-years 7 :court-ordered-definitive-exclusion? false
              :requires-niu? true :niu-verified? true
+             :sector :general
              :drafted? false :submitted? false
              :jurisdiction "COG" :status :intake}
     "eng-5" {:id "eng-5" :operator "Niari Import-Export SARL" :procurement-channel "BOAMP (armp.cg) tender notice"
@@ -87,6 +95,7 @@
              :claimed-fee 860000.0
              :prior-armp-exclusion? false
              :requires-niu? true :niu-verified? false
+             :sector :general
              :drafted? false :submitted? false
              :jurisdiction "COG" :status :intake}
     "eng-6" {:id "eng-6" :operator "Sassou Construction et Cie" :procurement-channel "BOAMP (armp.cg) tender notice"
@@ -94,6 +103,26 @@
              :claimed-fee 550000.0
              :prior-armp-exclusion? true :exclusion-duration-years 20 :court-ordered-definitive-exclusion? true
              :requires-niu? true :niu-verified? true
+             :sector :general
+             :drafted? false :submitted? false
+             :jurisdiction "COG" :status :intake}
+    "eng-7" {:id "eng-7" :operator "Kouilou Offshore Petroleum SA" :procurement-channel "BOAMP (armp.cg) tender notice"
+             :base-fee 500000 :monthly-rate 30000 :monitoring-months 12
+             :claimed-fee 860000.0
+             :prior-armp-exclusion? false
+             :requires-niu? true :niu-verified? true
+             :sector :hydrocarbons :snpc-joint-venture? false :congolese-staffing-compliant? false
+             :drafted? false :submitted? false
+             :jurisdiction "COG" :status :intake}
+    "eng-8" {:id "eng-8" :operator "Niari Génie Civil SARL" :procurement-channel "BOAMP (armp.cg) tender notice"
+             :base-fee 500000 :monthly-rate 30000 :monitoring-months 12
+             :claimed-fee 860000.0
+             :prior-armp-exclusion? false
+             :requires-niu? true :niu-verified? true
+             ;; same non-compliant JV/staffing flags as eng-7, but NOT
+             ;; hydrocarbons -- proves the check never fires outside the
+             ;; sector the executive order actually covers.
+             :sector :general :snpc-joint-venture? false :congolese-staffing-compliant? false
              :drafted? false :submitted? false
              :jurisdiction "COG" :status :intake}}})
 
@@ -184,12 +213,10 @@
    :draft-sequence/jurisdiction     {:db/unique :db.unique/identity}
    :submit-sequence/jurisdiction    {:db/unique :db.unique/identity}})
 
-(defn- enc [v] (pr-str v))
-(defn- dec* [s] (when s (edn/read-string s)))
-
 (defn- engagement->tx [{:keys [id operator procurement-channel base-fee monthly-rate monitoring-months claimed-fee
                                prior-armp-exclusion? exclusion-duration-years court-ordered-definitive-exclusion?
                                requires-niu? niu-verified?
+                               sector snpc-joint-venture? congolese-staffing-compliant?
                                drafted? submitted?
                                jurisdiction status draft-number submit-number]}]
   (cond-> {:engagement/id id}
@@ -204,6 +231,9 @@
     (some? court-ordered-definitive-exclusion?)    (assoc :engagement/court-ordered-definitive-exclusion? court-ordered-definitive-exclusion?)
     (some? requires-niu?)                          (assoc :engagement/requires-niu? requires-niu?)
     (some? niu-verified?)                          (assoc :engagement/niu-verified? niu-verified?)
+    sector                                         (assoc :engagement/sector sector)
+    (some? snpc-joint-venture?)                    (assoc :engagement/snpc-joint-venture? snpc-joint-venture?)
+    (some? congolese-staffing-compliant?)          (assoc :engagement/congolese-staffing-compliant? congolese-staffing-compliant?)
     (some? drafted?)                               (assoc :engagement/drafted? drafted?)
     (some? submitted?)                             (assoc :engagement/submitted? submitted?)
     jurisdiction                                   (assoc :engagement/jurisdiction jurisdiction)
@@ -216,6 +246,7 @@
    :engagement/monitoring-months :engagement/claimed-fee
    :engagement/prior-armp-exclusion? :engagement/exclusion-duration-years :engagement/court-ordered-definitive-exclusion?
    :engagement/requires-niu? :engagement/niu-verified?
+   :engagement/sector :engagement/snpc-joint-venture? :engagement/congolese-staffing-compliant?
    :engagement/drafted? :engagement/submitted?
    :engagement/jurisdiction :engagement/status :engagement/draft-number :engagement/submit-number])
 
@@ -229,6 +260,9 @@
      :court-ordered-definitive-exclusion? (boolean (:engagement/court-ordered-definitive-exclusion? m))
      :requires-niu? (boolean (:engagement/requires-niu? m))
      :niu-verified? (boolean (:engagement/niu-verified? m))
+     :sector (:engagement/sector m)
+     :snpc-joint-venture? (boolean (:engagement/snpc-joint-venture? m))
+     :congolese-staffing-compliant? (boolean (:engagement/congolese-staffing-compliant? m))
      :drafted? (boolean (:engagement/drafted? m)) :submitted? (boolean (:engagement/submitted? m))
      :jurisdiction (:engagement/jurisdiction m) :status (:engagement/status m)
      :draft-number (:engagement/draft-number m) :submit-number (:engagement/submit-number m)}))
@@ -242,21 +276,12 @@
          (map #(pull->engagement (d/pull (d/db conn) engagement-pull [:engagement/id %])))
          (sort-by :id)))
   (assessment-of [_ engagement-id]
-    (dec* (d/q '[:find ?p . :in $ ?eid
-                :where [?a :assessment/engagement-id ?eid] [?a :assessment/payload ?p]]
-              (d/db conn) engagement-id)))
-  (ledger [_]
-    (->> (d/q '[:find ?s ?f :where [?e :ledger/seq ?s] [?e :ledger/fact ?f]] (d/db conn))
-         (sort-by first)
-         (mapv (comp dec* second))))
-  (draft-history [_]
-    (->> (d/q '[:find ?s ?r :where [?e :draft-record/seq ?s] [?e :draft-record/record ?r]] (d/db conn))
-         (sort-by first)
-         (mapv (comp dec* second))))
-  (submit-history [_]
-    (->> (d/q '[:find ?s ?r :where [?e :submit-record/seq ?s] [?e :submit-record/record ?r]] (d/db conn))
-         (sort-by first)
-         (mapv (comp dec* second))))
+    (ls/dec* (d/q '[:find ?p . :in $ ?eid
+                   :where [?a :assessment/engagement-id ?eid] [?a :assessment/payload ?p]]
+                 (d/db conn) engagement-id)))
+  (ledger [_] (ls/read-stream conn :ledger/seq :ledger/fact))
+  (draft-history [_] (ls/read-stream conn :draft-record/seq :draft-record/record))
+  (submit-history [_] (ls/read-stream conn :submit-record/seq :submit-record/record))
   (next-draft-sequence [_ jurisdiction]
     (or (d/q '[:find ?n . :in $ ?j
               :where [?e :draft-sequence/jurisdiction ?j] [?e :draft-sequence/next ?n]]
@@ -277,7 +302,7 @@
       (d/transact! conn [(engagement->tx value)])
 
       :assessment/set
-      (d/transact! conn [{:assessment/engagement-id (first path) :assessment/payload (enc payload)}])
+      (d/transact! conn [{:assessment/engagement-id (first path) :assessment/payload (ls/enc payload)}])
 
       :engagement/mark-drafted
       (let [engagement-id (first path)
@@ -287,7 +312,7 @@
         (d/transact! conn
                      [(engagement->tx (assoc engagement-patch :id engagement-id))
                       {:draft-sequence/jurisdiction jurisdiction :draft-sequence/next next-n}
-                      {:draft-record/seq (count (draft-history s)) :draft-record/record (enc (get result "record"))}])
+                      {:draft-record/seq (count (draft-history s)) :draft-record/record (ls/enc (get result "record"))}])
         result)
 
       :engagement/mark-submitted
@@ -298,12 +323,12 @@
         (d/transact! conn
                      [(engagement->tx (assoc engagement-patch :id engagement-id))
                       {:submit-sequence/jurisdiction jurisdiction :submit-sequence/next next-n}
-                      {:submit-record/seq (count (submit-history s)) :submit-record/record (enc (get result "record"))}])
+                      {:submit-record/seq (count (submit-history s)) :submit-record/record (ls/enc (get result "record"))}])
         result)
       nil)
     s)
   (append-ledger! [s fact]
-    (d/transact! conn [{:ledger/seq (count (ledger s)) :ledger/fact (enc fact)}])
+    (ls/append-blob! conn :ledger/seq :ledger/fact (count (ledger s)) fact)
     fact)
   (with-engagements [s engagements]
     (when (seq engagements) (d/transact! conn (mapv engagement->tx (vals engagements)))) s))

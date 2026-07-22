@@ -6,4 +6,25 @@
  :itonami.blueprint/governor :market-entry-compliance-governor
  :itonami.blueprint/robotics false
  :itonami.blueprint/required-technologies [:identity :forms :dmn :bpmn :audit-ledger]
- :itonami.blueprint/status :public-oss}
+ :itonami.blueprint/status :public-oss
+ :itonami.blueprint/maturity :implemented
+ :itonami.blueprint/implemented-slice
+ "MarketEntry-LLM ⊣ Market-Entry Compliance Governor, langgraph-clj
+ StateGraph, append-only audit ledger. Seven governor checks grounded
+ in primary Republic of the Congo sources (curl/pdftotext-verified
+ against sgg.cg's own hosting of Décret n° 2009-156 du 20 mai 2009
+ portant Code des Marchés Publics, and WebFetch-verified against
+ armp.cg / acpce.cg / impots.gouv.cg): spec-basis citation, evidence-
+ checklist completeness (RCCM via ACPCE + NIU via DGID + ARMP
+ exclusion-list confirmation + BOAMP/ARMP registration), a flagship
+ STATUTORY CEILING VALIDATION on an engagement's own declared prior-
+ ARMP-exclusion duration against Art. 146's five-year statutory
+ maximum (with the court-ordered-definitive-exclusion exception Art.
+ 146 itself names), engagement-fee ground-truth recompute, NIU
+ registration verification, and a hydrocarbons-SECTOR-CONDITIONAL
+ local-content/SNPC-joint-venture check (15 November 2019 executive
+ order -- petroleum only, never applied to non-hydrocarbons
+ engagements). `:filing/draft`/`:filing/submit` NEVER auto-commit at
+ any phase (permanent structural invariant); `:engagement/intake` is
+ the only op eligible to auto-commit, and only at phase 3 when
+ governor-clean."}

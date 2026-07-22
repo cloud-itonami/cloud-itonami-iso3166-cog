@@ -20,7 +20,7 @@
   human sign-off'; 'a false or fabricated regulatory-requirement claim
   is a HARD hold') names exactly the checks below.
 
-  Six checks, in priority order, ALL HARD violations: a human
+  Seven checks, in priority order, ALL HARD violations: a human
   approver CANNOT override them. The confidence/actuation gate is
   SOFT: it asks a human to look (low confidence / actuation), and the
   human may approve -- but see `marketentry.phase`: for `:stake
@@ -84,7 +84,29 @@
                                        d'Identifiant Unique (NIU), via
                                        the Portail Fiscal Officiel
                                        (see `marketentry.facts`).
-    6. Confidence floor / actuation
+    6. Hydrocarbons local-content
+       non-compliance                -- for `:filing/submit`, when the
+                                       engagement declares `:sector
+                                       :hydrocarbons`, INDEPENDENTLY
+                                       verify BOTH
+                                       `:snpc-joint-venture?` and
+                                       `:congolese-staffing-compliant?`
+                                       are true. SECTOR-CONDITIONAL --
+                                       grounded in the 15 novembre 2019
+                                       executive order, which applies
+                                       ONLY to the petroleum/hydrocarbons
+                                       sector (foreign firms must
+                                       joint-venture with the Société
+                                       Nationale des Pétroles du Congo
+                                       (SNPC) and staff 80% of
+                                       management / 90% of all positions
+                                       with Congolese nationals) -- this
+                                       is NOT a general public-
+                                       procurement local-content rule,
+                                       and this check MUST NEVER fire
+                                       for a non-hydrocarbons engagement
+                                       (see `marketentry.facts`).
+    7. Confidence floor / actuation
        gate                          -- LLM confidence below threshold,
                                        OR the op is `:filing/draft`/
                                        `:filing/submit` (REAL acts)
@@ -176,6 +198,28 @@
           :detail (str subject " はDirection Générale des Impôts et des Domaines(DGID)へのNIU登録確認を"
                       "要するが未確認 -- 提出提案は進められない")}]))))
 
+(defn- hydrocarbons-local-content-violations
+  "For `:filing/submit`, when the engagement declares `:sector
+  :hydrocarbons`, INDEPENDENTLY verify BOTH `:snpc-joint-venture?` and
+  `:congolese-staffing-compliant?` are true -- grounded in the 15
+  novembre 2019 executive order, which applies ONLY to the petroleum/
+  hydrocarbons sector (joint-venture with the Société Nationale des
+  Pétroles du Congo (SNPC); 80% of management and 90% of all positions
+  staffed with Congolese nationals). SECTOR-CONDITIONAL: a
+  non-hydrocarbons engagement's `:sector` is never `:hydrocarbons`, so
+  this check is a structural no-op for it -- this is deliberately NOT a
+  general public-procurement local-content/JV rule."
+  [{:keys [op subject]} st]
+  (when (= op :filing/submit)
+    (let [e (store/engagement st subject)]
+      (when (= :hydrocarbons (:sector e))
+        (when-not (and (true? (:snpc-joint-venture? e))
+                       (true? (:congolese-staffing-compliant? e)))
+          [{:rule :hydrocarbons-local-content-noncompliant
+            :detail (str subject " は炭化水素セクター案件であり、2019年11月15日の大統領令が定める"
+                        "SNPC合弁(joint-venture)要件およびコンゴ人スタッフ比率(管理職80%/全体90%)要件を"
+                        "独立確認できていない -- 提出提案は進められない")}])))))
+
 (defn- already-drafted-violations
   "For `:filing/draft`, refuses to draft the SAME engagement twice."
   [{:keys [op subject]} st]
@@ -203,6 +247,7 @@
                            (exclusion-duration-cap-violations request st)
                            (engagement-fee-mismatch-violations request st)
                            (niu-registration-unverified-violations request st)
+                           (hydrocarbons-local-content-violations request st)
                            (already-drafted-violations request st)
                            (already-submitted-violations request st)))
         conf (:confidence proposal 0.0)

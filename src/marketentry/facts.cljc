@@ -163,6 +163,20 @@
     i.e. currently EMPTY. That is reported here honestly as a real,
     currently-empty list, not papered over with a fabricated example
     entry.
+  - **Hydrocarbons-sector local content** (SECTOR-SPECIFIC, not a
+    general public-procurement rule): a 15 November 2019 executive
+    order requires foreign firms operating in the petroleum sector to
+    joint-venture with the Société Nationale des Pétroles du Congo
+    (SNPC) and to staff 80% of management positions and 90% of all
+    positions with Congolese nationals. This is independently
+    corroborated by the U.S. Department of State's own 2022 Investment
+    Climate Statement for the Republic of the Congo
+    (`state.gov/reports/2022-investment-climate-statements/republic-of-
+    the-congo`) -- this catalog does NOT extend this to a general
+    local-content/JV rule for non-hydrocarbons public contracts; the
+    governor's `hydrocarbons-local-content-violations` check is
+    scoped/conditional on the engagement's own declared `:sector`
+    accordingly (see `marketentry.governor`).
   - `rep-spec-basis`: deliberately nil for COG. This iteration
     specifically looked in Décret n° 2009-156 for a provision extending
     disqualification to a bidder's own representatives/directors/officers
@@ -188,7 +202,11 @@
   docstring's honest-scope-narrowing note. `:exclusion-cap-owner-
   authority` / `:exclusion-cap-legal-basis` / `:exclusion-cap-years` /
   `:exclusion-cap-provenance` ground this vertical's flagship governor
-  check (`exclusion-cap-spec-basis`)."
+  check (`exclusion-cap-spec-basis`). `:hydrocarbons-local-content-
+  owner-authority` / `:hydrocarbons-local-content-legal-basis` /
+  `:hydrocarbons-local-content-provenance` ground the SECTOR-CONDITIONAL
+  local-content check (`hydrocarbons-local-content-spec-basis`) --
+  applies ONLY when an engagement's own `:sector` is `:hydrocarbons`."
   {"COG" {:name "Republic of the Congo"
           :owner-authority "Autorité de Régulation des Marchés Publics (ARMP) -- an independent regulatory body instituted under the Presidency of the Republic (Décret n° 2009-156 du 20 mai 2009, Art. 20)"
           :legal-basis "Décret n° 2009-156 du 20 mai 2009 portant Code des Marchés Publics -- Art. 20 (creates ARMP, instituted under the Presidency, independent a posteriori regulation) + Art. 21 (missions: audits, exclusion-list maintenance, official procurement bulletin) + Art. 146 (candidate/bidder sanctions, incl. exclusion)"
@@ -208,7 +226,10 @@
           :exclusion-cap-owner-authority "Autorité de Régulation des Marchés Publics (ARMP)"
           :exclusion-cap-legal-basis "Décret n° 2009-156 du 20 mai 2009, Art. 146: exclusion from competition for a duration set according to the gravity of the fault (collusion, bid-splitting fraud, over/false invoicing, improper influence on evaluation/award, court-confirmed prior contractual breach, false/misleading declarations), extending to majority-capital parent/subsidiary companies for a collusion finding. Own text verbatim: 'La décision d'exclusion de la commande publique ne peut dépasser cinq ans. En cas de renouvellement des atteintes à la réglementation des marchés publics par la même personne physique ou morale, une décision d'exclusion définitive peut être prononcée par les juridictions compétentes.' ARMP itself maintains and publishes an updated exclusion list (own text: 'établit périodiquement une liste des personnes physiques et morales exclues... publiée sur le site internet de ladite autorité')"
           :exclusion-cap-years 5
-          :exclusion-cap-provenance "https://sgg.cg/codes/congo-code-2009-marches-publics.pdf ; https://www.armp.cg/disputes-excluded.php?lang=fr"}
+          :exclusion-cap-provenance "https://sgg.cg/codes/congo-code-2009-marches-publics.pdf ; https://www.armp.cg/disputes-excluded.php?lang=fr"
+          :hydrocarbons-local-content-owner-authority "Government of the Republic of the Congo (executive order, hydrocarbons/petroleum sector only -- not ARMP, not a general public-procurement rule)"
+          :hydrocarbons-local-content-legal-basis "Executive order of 15 November 2019 (hydrocarbons sector only): foreign firms in petroleum must joint-venture with the Société Nationale des Pétroles du Congo (SNPC) and staff 80% of management positions and 90% of all positions with Congolese nationals"
+          :hydrocarbons-local-content-provenance "https://www.state.gov/reports/2022-investment-climate-statements/republic-of-the-congo"}
    "USA" {:name "United States"
           :owner-authority "U.S. General Services Administration (GSA) / SAM.gov"
           :legal-basis "Federal Acquisition Regulation (FAR); System for Award Management"
@@ -314,3 +335,19 @@
                        :exclusion-cap-legal-basis
                        :exclusion-cap-years
                        :exclusion-cap-provenance]))))
+
+(defn hydrocarbons-local-content-spec-basis
+  "The jurisdiction's hydrocarbons-sector-CONDITIONAL local-content/
+  joint-venture regime, or nil. For COG this is grounded in the 15
+  November 2019 executive order (SNPC joint-venture + 80%/90%
+  Congolese-staffing requirement) -- SECTOR-SPECIFIC to petroleum, NOT
+  a general public-procurement local-content rule. See
+  `marketentry.governor/hydrocarbons-local-content-violations`, which
+  is conditional on the engagement's own declared `:sector` and never
+  fires for a non-hydrocarbons engagement."
+  [iso3]
+  (when-let [sb (spec-basis iso3)]
+    (when (:hydrocarbons-local-content-owner-authority sb)
+      (select-keys sb [:hydrocarbons-local-content-owner-authority
+                       :hydrocarbons-local-content-legal-basis
+                       :hydrocarbons-local-content-provenance]))))

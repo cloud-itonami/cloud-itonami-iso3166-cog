@@ -81,14 +81,18 @@
   :actuation/submit-filing` -- real-world BOAMP tender response / ARMP
   filing submission."
   [db {:keys [subject]}]
-  (let [e (store/engagement db subject)]
+  (let [e (store/engagement db subject)
+        hydro? (= :hydrocarbons (:sector e))]
     {:summary    (str subject " 向け提出提案"
                       (when e (str " (operator=" (:operator e) ")")))
      :rationale  (if e
                    (str "niu-verified?=" (:niu-verified? e)
                         " prior-armp-exclusion?=" (:prior-armp-exclusion? e)
                         " exclusion-duration-years=" (:exclusion-duration-years e)
-                        " claimed-fee=" (:claimed-fee e))
+                        " claimed-fee=" (:claimed-fee e)
+                        (when hydro?
+                          (str " sector=hydrocarbons snpc-joint-venture?=" (:snpc-joint-venture? e)
+                               " congolese-staffing-compliant?=" (:congolese-staffing-compliant? e))))
                    "engagementが見つかりません")
      :cites      (if e [subject] [])
      :effect     :engagement/mark-submitted
@@ -96,7 +100,9 @@
      :stake      :actuation/submit-filing
      :confidence (if (and e
                           (or (not (:requires-niu? e))
-                              (:niu-verified? e)))
+                              (:niu-verified? e))
+                          (or (not hydro?)
+                              (and (:snpc-joint-venture? e) (:congolese-staffing-compliant? e))))
                    0.9 0.3)}))
 
 (defprotocol Advisor
