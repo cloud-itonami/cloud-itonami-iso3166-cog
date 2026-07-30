@@ -27,4 +27,12 @@
  engagements). `:filing/draft`/`:filing/submit` NEVER auto-commit at
  any phase (permanent structural invariant); `:engagement/intake` is
  the only op eligible to auto-commit, and only at phase 3 when
- governor-clean."}
+ governor-clean."
+ ;; Deployed into the ai-gftd-repository-dispatch namespace (Workers for
+ ;; Platforms). A user Worker there has no URL of its own — it is reachable
+ ;; only through the dispatch Worker, so the address is the router plus this
+ ;; actor's repository name, which is also the catalog's :repo key.
+ ;; /health answers JSON, so it is declared as the probe path.
+ :itonami.blueprint/endpoint "https://itonami-fleet-dispatch.04-feasts-minded.workers.dev/cloud-itonami-iso3166-cog"
+ :itonami.blueprint/endpoint-kind :dispatch-namespace
+ :itonami.blueprint/health-path "/health"}
