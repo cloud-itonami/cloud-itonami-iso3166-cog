@@ -1,0 +1,14 @@
+;; The COG market-entry actor's Worker. :esm, the same shape as every other
+;; actor on the shared host.
+;; Shared cache: every actor in this family has the same classpath apart
+;; from its own marketentry.* sources, so langgraph/kotobase/marketplace
+;; compile once for the batch instead of once per actor. Safe only because
+;; the repo resource-guard serializes builds — two writers would corrupt it.
+{:cache-root "/tmp/shadow-cache"
+ :deps {:aliases [:cljs]}
+ :builds
+ {:worker
+  {:target :esm
+   :output-dir "dist"
+   :modules {:worker {:exports {default marketentry.edge.worker/app}}}
+   :compiler-options {:output-feature-set :es2020 :infer-externs :auto}}}}
