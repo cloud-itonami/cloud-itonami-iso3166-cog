@@ -1,7 +1,7 @@
 {
   "name": "cloud-itonami-iso3166-cog",
   "private": true,
-  "comment": "shadow-cljs compiles src/marketentry/edge/worker.cljs -> dist/worker.js, the kotobase host for the COG market-entry actor.",
+  "comment": "shadow-cljs compiles src/marketentry/edge/worker.kotoba -> dist/worker.js, the kotobase host for the COG market-entry actor.",
   "scripts": { "build": "shadow-cljs release worker" },
   "devDependencies": {
     "@noble/hashes": "^2.2.0",

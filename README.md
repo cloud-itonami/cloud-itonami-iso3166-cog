@@ -46,7 +46,7 @@ clojure -M:dev:test
    per the 15 November 2019 executive order. This is deliberately
    NOT a general public-procurement local-content rule and this check
    MUST NEVER fire for a non-hydrocarbons engagement (see
-   `test/marketentry/governor_contract_test.clj`).
+   `test/marketentry/governor_contract_test.kotoba`).
    Source: <https://www.state.gov/reports/2022-investment-climate-statements/republic-of-the-congo>
 7. **Confidence floor / actuation gate** -- low advisor confidence, or
    the op being a real actuation (`:filing/draft`/`:filing/submit`),
@@ -90,7 +90,7 @@ Wave 1, in `com-junkawasaki/root`) — national dishes, protected products,
 beverages, crafts, festivals and heritage sites for the Republic of the
 Congo:
 
-- `src/culture/facts.cljc` — the catalog, source of truth (keyed by
+- `src/culture/facts.kotoba` — the catalog, source of truth (keyed by
   uppercase ISO3, mirroring `statute.facts`).
 - `schema/culture.edn` — DataScript schema.
 - `data/culture-tx.edn` — derived DataScript tx-data (regenerated from

@@ -7,7 +7,7 @@ Market-entry compliance for the Republic of the Congo.
   2009-156 du 20 mai 2009, Art. 20); a priori control of the procurement
   procedure itself is a SEPARATE body, the Direction Générale du
   Contrôle des Marchés Publics (DGCMP), housed within the finance
-  ministry (see `src/marketentry/facts.cljc`)
+  ministry (see `src/marketentry/facts.kotoba`)
 - Tender notices are published via ARMP's own paid BOAMP bulletin
   purchase/subscription system, not a live self-service e-tendering
   portal; a digitalization decree exists (Décret n° 2024-2072 du 10
