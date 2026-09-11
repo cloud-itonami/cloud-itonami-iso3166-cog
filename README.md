@@ -9,7 +9,7 @@ ledger (see `orgs/cloud-itonami/cloud-itonami-iso3166-ago`'s
 `marketentry.*` for this fleet's canonical structural template).
 
 ```
-clojure -M:dev:test
+kbb -M:dev:test
 ```
 
 ## Governor checks (all HARD, human-unoverridable) and their sources
